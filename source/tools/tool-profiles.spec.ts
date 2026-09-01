@@ -141,11 +141,11 @@ test('inferToolProfile - MoE ids size by total params, not active count', t => {
 	t.is(inferToolProfile('Qwen3-235B-A22B'), 'full');
 });
 
-test('inferToolProfile - cloud/unknown models default to full', t => {
-	t.is(inferToolProfile('claude-opus-4-8'), 'full');
-	t.is(inferToolProfile('gpt-4o'), 'full');
-	t.is(inferToolProfile(undefined), 'full');
-	t.is(inferToolProfile(''), 'full');
+test('inferToolProfile - cloud/unknown models default to minimal', t => {
+	t.is(inferToolProfile('claude-opus-4-8'), 'minimal');
+	t.is(inferToolProfile('gpt-4o'), 'minimal');
+	t.is(inferToolProfile(undefined), 'minimal');
+	t.is(inferToolProfile(''), 'minimal');
 });
 
 test('resolveToolProfile - passes through concrete profiles unchanged', t => {
@@ -157,14 +157,14 @@ test('resolveToolProfile - passes through concrete profiles unchanged', t => {
 test('resolveToolProfile - resolves auto from the model', t => {
 	t.is(resolveToolProfile('auto', 'llama3.2:1b'), 'nano');
 	t.is(resolveToolProfile('auto', 'qwen2.5-coder:7b'), 'minimal');
-	t.is(resolveToolProfile('auto', 'gpt-4o'), 'full');
+	t.is(resolveToolProfile('auto', 'gpt-4o'), 'minimal');
 });
 
 test('auto profile resolves via the profile helpers too', t => {
 	t.true(isSingleToolProfile('auto', 'llama3.2:1b'));
 	t.true(isNanoProfile('auto', 'llama3.2:1b'));
 	t.false(isNanoProfile('auto', 'gpt-4o'));
-	t.deepEqual(getToolsForProfile('auto', 'gpt-4o'), []);
+	t.true(getToolsForProfile('auto', 'gpt-4o').includes('agent'));
 	t.true(getToolsForProfile('auto', 'qwen2.5-coder:7b').includes('agent'));
 });
 
