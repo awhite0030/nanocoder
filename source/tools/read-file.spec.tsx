@@ -1150,3 +1150,58 @@ test('ReadFileFormatter correctly identifies metadata_only results', async t => 
 		rmSync(testDir, { recursive: true, force: true });
 	}
 });
+
+test.serial('read_file large file returns preview without metadata', async t => {
+	t.timeout(10000);
+	const testDir = join(process.cwd(), 'test-large-file');
+
+	try {
+		mkdirSync(testDir, {recursive: true});
+		const content = Array.from({length: 3000}, (_, i) => `line ${i + 1}`).join('\n');
+		writeFileSync(join(testDir, 'large.txt'), content);
+
+		const result = await readFileTool.tool.execute!(
+			{
+				path: join(testDir, 'large.txt'),
+			},
+			{toolCallId: 'test', messages: []},
+		) as string;
+
+		t.false(result.startsWith('File Information for'));
+		t.true(result.includes('line 1'));
+		t.true(result.includes('[Truncated at line '));
+	} finally {
+		rmSync(testDir, {recursive: true, force: true});
+	}
+});
+
+test.serial('ReadFileFormatter metadata_only on directory renders correctly', async t => {
+	const testDir = join(process.cwd(), 'test-metadata-dir-formatter');
+	try {
+		mkdirSync(testDir, {recursive: true});
+		mkdirSync(join(testDir, 'subdir'), {recursive: true});
+
+		const args = {
+			path: join(testDir, 'subdir'),
+			metadata_only: true,
+		};
+
+		const result = `File Information for "${args.path}"\n==================================================\n\nType: directory\nSize: 64 bytes\nLast Modified: 2023-01-01T00:00:00.000Z`;
+
+		const formatter = readFileTool.formatter;
+		if (!formatter) {
+			t.fail('Formatter is not defined');
+			return;
+		}
+
+		const element = await formatter(args, result);
+		const {lastFrame} = render(<TestThemeProvider>{element}</TestThemeProvider>);
+		const output = lastFrame();
+
+		t.truthy(output);
+		t.regex(stripAnsi(output!), /metadata only/);
+		t.regex(stripAnsi(output!), /Total lines:\s*0/);
+	} finally {
+		rmSync(testDir, {recursive: true, force: true});
+	}
+});
