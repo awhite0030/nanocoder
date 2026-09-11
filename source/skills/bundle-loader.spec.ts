@@ -116,8 +116,13 @@ body
 			const {skills, errors} = await loader.load();
 			t.is(errors.length, 0);
 			t.is(skills.length, 1);
-			t.is(skills[0]?.subscribe?.length, 1);
-			t.is(skills[0]?.subscribe?.[0]?.target, 'skill:some-other-skill');
+
+			t.deepEqual(skills[0]?.subscribe, [
+				{
+					kind: 'file.changed',
+					target: 'skill:some-other-skill',
+				},
+			]);
 		});
 	},
 );

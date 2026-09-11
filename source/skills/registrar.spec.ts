@@ -277,3 +277,33 @@ test('subscriptions are registered with the event router', async t => {
 	t.is(deps.dispatchCalls.length, 1);
 	t.is(deps.dispatchCalls[0]?.sub.id, r.subscriptionIds[0]);
 });
+
+test('skill: prefix target survives registration and routes as kind: skill', async t => {
+	const deps = makeDeps();
+	const skill: Skill = {
+		name: 'k8s',
+		description: 'k8s helpers',
+		toolsVisibility: 'scoped',
+		source: {priority: 'project', shape: 'bundle', rootPath: '/skills/k8s'},
+		subscribe: [
+			{
+				kind: 'file.changed',
+				target: 'skill:some-other-skill',
+				paths: ['k8s/**'],
+			},
+		],
+	};
+	const r = registerSkills([skill], deps);
+	t.deepEqual(r.collisions, []);
+	t.is(r.subscriptionIds.length, 1);
+
+	await deps.eventRouter.emit({
+		kind: 'file.changed',
+		payload: {file: 'k8s/deployment.yaml', eventKind: 'change'},
+		at: Date.now(),
+	});
+
+	t.is(deps.dispatchCalls.length, 1);
+	t.is(deps.dispatchCalls[0]?.sub.target.kind, 'skill');
+	t.is(deps.dispatchCalls[0]?.sub.target.name, 'some-other-skill');
+});
