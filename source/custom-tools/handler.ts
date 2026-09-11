@@ -6,6 +6,7 @@ import {renderBody} from '@/custom-tools/template';
 import type {CustomToolMetadata} from '@/types/custom-tools';
 import type {ToolHandler} from '@/types/index';
 import {isRealPathInside} from '@/utils/path-validation';
+import {isWindowsCmd} from '@/utils/shell';
 import {truncateToolResult} from '@/utils/truncate-tool-result';
 
 /**
@@ -193,11 +194,6 @@ export function expandVars(value: string): string {
 /** cmd.exe: /d (skip AutoRun), /s (deterministic quotes), /c. POSIX: -c. */
 export function shellArgs(shell: string, script: string): string[] {
 	return isWindowsCmd(shell) ? ['/d', '/s', '/c', script] : ['-c', script];
-}
-
-export function isWindowsCmd(shell: string): boolean {
-	const name = shell.replaceAll('\\', '/').split('/').pop() ?? '';
-	return /^cmd(\.exe)?$/i.test(name);
 }
 
 function pickShell(configured: string | undefined): string {

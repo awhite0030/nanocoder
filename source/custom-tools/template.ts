@@ -10,16 +10,15 @@
  *                                `args[name]` is falsy/empty (the complement
  *                                of `{{# name }}`).
  *
- * All scalar values are passed through `shellQuote()` which wraps the value
- * in single quotes and escapes embedded single quotes. Arrays are joined into
- * a single space-separated string with each element individually quoted.
+ * All scalar values are passed through a shell-specific quoter (`shellQuote()`
+ * for POSIX, `cmdQuote()` for cmd.exe) which wraps the value in quotes and
+ * prevents injection. Arrays are joined into a single space-separated string
+ * with each element individually quoted.
  *
- * Substitution happens *before* the body is handed to the shell. Under
- * bash/sh that yields a POSIX-quoted command line. Under cmd.exe the
- * same quotes are not quoting, so this is not an injection barrier.
+ * Substitution happens *before* the body is handed to the shell.
  */
 
-import {isWindowsCmd} from '@/custom-tools/handler';
+import {isWindowsCmd} from '@/utils/shell';
 import {expandSections} from '@/utils/template-sections';
 
 /**
@@ -38,11 +37,13 @@ export function shellQuote(value: string): string {
 /**
  * Wrap a string in cmd.exe-safe double quotes.
  *
- * Escapes %, &, |, <, >, and ^ by prefixing them with ^.
+ * Strips double quotes (`"`) and `%` from the value, and wraps the
+ * result in double quotes. This prevents variable expansion and escaping
+ * from the quoted region under `cmd.exe`.
  */
 export function cmdQuote(value: string): string {
-	const escaped = value.replace(/[%&|<>^]/g, '^$&');
-	return `"${escaped}"`;
+	const sanitized = value.replace(/["%]/g, '');
+	return `"${sanitized}"`;
 }
 
 /**
