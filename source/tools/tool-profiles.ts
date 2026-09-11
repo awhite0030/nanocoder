@@ -78,10 +78,10 @@ function modelParamsBillions(model: string): number | null {
  * cloud-hosted models (no size hint in the id) get the full surface.
  */
 export function inferToolProfile(model?: string): ConcreteProfile {
-	if (!model) return 'full';
+	if (!model) return 'minimal';
 
 	const params = modelParamsBillions(model);
-	if (params === null) return 'full'; // cloud / unknown — assume capable
+	if (params === null) return 'minimal'; // cloud / unknown — default to safe profile
 	if (params <= 4) return 'nano';
 	if (params <= 15) return 'minimal';
 	return 'full';
