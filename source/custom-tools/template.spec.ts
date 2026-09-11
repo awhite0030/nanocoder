@@ -36,13 +36,14 @@ test('renderValue handles numbers and booleans', t => {
 	t.is(renderValue(true), `'true'`);
 });
 
-test('cmdQuote escapes %, &, |, <, >, ^', t => {
-	t.is(cmdQuote('%PATH%'), '"^%PATH^%"');
-	t.is(cmdQuote('a & b | c < d > e ^ f'), '"a ^& b ^| c ^< d ^> e ^^ f"');
+test('cmdQuote strips " and % and wraps in double quotes', t => {
+	t.is(cmdQuote('%PATH%'), '"PATH"');
+	t.is(cmdQuote('a & b | c < d > e ^ f'), '"a & b | c < d > e ^ f"');
+	t.is(cmdQuote('some "quoted" string'), '"some quoted string"');
 });
 
 test('renderValue uses cmdQuote for cmd.exe', t => {
-	t.is(renderValue(['a', 'b & c'], 'cmd.exe'), '"a" "b ^& c"');
+	t.is(renderValue(['a', 'b & c'], 'cmd.exe'), '"a" "b & c"');
 	t.is(renderValue(42, 'cmd.exe'), '"42"');
 	t.is(renderValue('hello', 'cmd'), '"hello"');
 });
@@ -118,5 +119,5 @@ test('renderBody positive and inverted sections on the same var', t => {
 
 test('renderBody uses cmd quoting when shell is cmd.exe', t => {
 	const out = renderBody('echo {{ msg }}', {msg: "hello & world"}, 'cmd.exe');
-	t.is(out, 'echo "hello ^& world"');
+	t.is(out, 'echo "hello & world"');
 });
