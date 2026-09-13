@@ -354,6 +354,77 @@ test.serial('CheckpointManager rejects path traversal in load', async t => {
 	}
 });
 
+test.serial(
+	'CheckpointManager rejects path traversal in save file snapshot',
+	async t => {
+		const tempDir = await createTempDir();
+		try {
+			const manager = new CheckpointManager(tempDir);
+			const messages = createMockMessages(2);
+			const escapePath = '../../../../../etc/passwd';
+
+			// Write a dummy file so that FileSnapshotService captures it.
+			// FileSnapshotService resolves the file relative to workspaceRoot,
+			// which works around its own normal usage but for the exploit scenario
+			// we are simulating the vulnerability where metadata has an escaping path.
+			// In `saveCheckpoint`, the escaping path might be injected via `modifiedFiles`.
+
+			await t.throwsAsync(
+				async () => {
+					await manager.saveCheckpoint(
+						'traversal-save',
+						messages,
+						'Provider',
+						'model',
+						[escapePath],
+					);
+				},
+				{message: /escapes the checkpoint directory/},
+			);
+		} finally {
+			await cleanupTempDir(tempDir);
+		}
+	},
+);
+
+test.serial(
+	'CheckpointManager rejects path traversal in load file snapshot',
+	async t => {
+		const tempDir = await createTempDir();
+		try {
+			const manager = new CheckpointManager(tempDir);
+			const messages = createMockMessages(2);
+
+			await manager.saveCheckpoint('traversal-load', messages, 'Provider', 'model');
+
+			// Manually corrupt the metadata to have a path traversal.
+			const metadataPath = path.join(
+				tempDir,
+				'.nanocoder',
+				'checkpoints',
+				'traversal-load',
+				'metadata.json'
+			);
+			const metadataContent = await fs.readFile(metadataPath, 'utf-8');
+			const metadata = JSON.parse(metadataContent);
+			metadata.filesChanged = ['../../../../../etc/passwd'];
+			await fs.writeFile(metadataPath, JSON.stringify(metadata));
+
+			// loadCheckpoint suppresses individual file read errors by logging a warning
+			// instead of throwing to avoid crashing if a file is unreadable.
+			// But it should not have the file in fileSnapshots.
+			const checkpointData = await manager.loadCheckpoint('traversal-load');
+			t.is(checkpointData.fileSnapshots.size, 0);
+
+			// We also check that the error log is produced, but it's hard to test `logWarning`.
+			// So we check that `metadata.filesChanged` had the escaped path, but `fileSnapshots` is empty.
+			t.deepEqual(checkpointData.metadata.filesChanged, ['../../../../../etc/passwd']);
+		} finally {
+			await cleanupTempDir(tempDir);
+		}
+	},
+);
+
 test.serial('CheckpointManager validates checkpoint integrity', async t => {
 	const tempDir = await createTempDir();
 	try {
