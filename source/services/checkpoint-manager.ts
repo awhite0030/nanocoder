@@ -176,10 +176,17 @@ export class CheckpointManager {
 		// which is what keeps binary files intact at rest inside the checkpoint.
 		if (fileSnapshots.size > 0) {
 			const filesDir = path.join(checkpointDir, 'files'); // nosemgrep
+			const base = path.resolve(filesDir); // nosemgrep
 			await fs.mkdir(filesDir, {recursive: true});
 
 			for (const [relativePath, content] of fileSnapshots) {
 				const filePath = path.join(filesDir, relativePath); // nosemgrep
+				const resolved = path.resolve(filePath); // nosemgrep
+				if (resolved !== base && !resolved.startsWith(base + path.sep)) {
+					throw new Error(
+						`Invalid file snapshot path: '${relativePath}' escapes the checkpoint directory`,
+					);
+				}
 				const fileDir = path.dirname(filePath);
 				await fs.mkdir(fileDir, {recursive: true});
 				await fs.writeFile(filePath, content);
@@ -230,11 +237,18 @@ export class CheckpointManager {
 		// Load file snapshots
 		const fileSnapshots = new Map<string, Buffer>();
 		const filesDir = path.join(checkpointDir, 'files'); // nosemgrep
+		const base = path.resolve(filesDir); // nosemgrep
 
 		if (existsSync(filesDir)) {
 			for (const relativePath of metadata.filesChanged) {
 				try {
 					const filePath = path.join(filesDir, relativePath); // nosemgrep
+					const resolved = path.resolve(filePath); // nosemgrep
+					if (resolved !== base && !resolved.startsWith(base + path.sep)) {
+						throw new Error(
+							`Invalid file snapshot path: '${relativePath}' escapes the checkpoint directory`,
+						);
+					}
 					const content = await fs.readFile(filePath);
 					fileSnapshots.set(relativePath, content);
 				} catch (error) {
