@@ -1,3 +1,4 @@
+import {getProjectRoot} from '@/services/session-cwd';
 /**
  * /skills slash command. Lists every skill loaded by the bootstrap, with
  * its shape (single-file or bundle), priority, member counts, and any
@@ -270,7 +271,7 @@ async function handlePromotion(direction: PromoteDirection, args: string[]) {
 		return errorMsg(`No skill named "${name}" is loaded.`, 'skills');
 	}
 
-	const planned = planPromotion(skill, direction, process.cwd());
+	const planned = planPromotion(skill, direction, getProjectRoot());
 	if ('error' in planned) {
 		return infoMsg(planned.error, 'skills');
 	}
@@ -319,7 +320,7 @@ export const skillsCommand: Command = {
 					'skills',
 				);
 			}
-			const report = await checkSkillBundle(process.cwd(), name);
+			const report = await checkSkillBundle(getProjectRoot(), name);
 			return React.createElement(SkillCheckView, {
 				report,
 				key: generateKey('skills'),
