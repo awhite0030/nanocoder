@@ -742,62 +742,6 @@ test.serial(
 	},
 );
 
-test.serial(
-	'createLLMClient: falls back when requested provider fails',
-	async t => {
-		// Mock fetch: fail first call, succeed second
-		let callCount = 0;
-		globalThis.fetch = (async () => {
-			callCount++;
-			if (callCount === 1) {
-				throw new TypeError('Failed to fetch');
-			}
-			return {
-				ok: true,
-				status: 200,
-				statusText: 'OK',
-			} as Response;
-		}) as typeof fetch;
-
-		// Create config with multiple providers
-		const configDir = join(testDir, 'requested-fallback-test');
-		mkdirSync(configDir, {recursive: true});
-
-		createTestConfig(
-			{
-				nanocoder: {
-					providers: [
-						{
-							name: 'Provider1',
-							baseUrl: 'http://localhost:8000/v1',
-							models: ['model1'],
-						},
-						{
-							name: 'Provider2',
-							baseUrl: 'http://localhost:9000/v1',
-							models: ['model2'],
-						},
-					],
-				},
-			},
-			configDir,
-		);
-
-		// Mock process.cwd to return test directory
-		process.cwd = () => configDir;
-
-		// Reload config to pick up new config
-		reloadAppConfig();
-
-		// Request Provider2, which will fail, then fallback to Provider1
-		const result = await createLLMClient('Provider2');
-
-		t.truthy(result);
-		t.truthy(result.client);
-		// Should fallback to Provider1
-		t.truthy(result.actualProvider); // Actual provider name may vary based on default config
-	},
-);
 
 // ============================================================================
 // createLLMClient - Provider Configuration Tests
@@ -1220,6 +1164,52 @@ test.serial(
 		t.true(
 			(error as ConfigurationError).message.includes('model1, model2'),
 		);
+	},
+);
+
+test.serial(
+	'createLLMClient: does not fall back when an explicitly requested provider fails',
+	async t => {
+		// Mock fetch to simulate failure for explicitly requested provider
+		globalThis.fetch = createMockFetch(false, 500);
+
+		const configDir = join(testDir, 'no-fallback-test');
+		mkdirSync(configDir, {recursive: true});
+
+		createTestConfig(
+			{
+				nanocoder: {
+					providers: [
+						{
+							name: 'FailingProvider',
+							sdkProvider: 'github-copilot',
+							models: ['model1'],
+						},
+						{
+							name: 'WorkingProvider',
+							baseUrl: 'http://localhost:8001/v1',
+							models: ['model2'],
+						},
+					],
+				},
+			},
+			configDir,
+		);
+
+		process.cwd = () => configDir;
+		reloadAppConfig();
+
+		const error = await t.throwsAsync(
+			createLLMClient('FailingProvider', 'model1'),
+		);
+
+		t.true(
+			error.message.includes('All configured providers failed'),
+			'Expected error message to indicate failure',
+		);
+		// Crucially, the error message should only contain the failing provider, not the working one
+		t.true(error.message.includes('FailingProvider:'));
+		t.false(error.message.includes('WorkingProvider:'));
 	},
 );
 

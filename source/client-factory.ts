@@ -140,12 +140,14 @@ async function createAISDKClient(
 		}
 	}
 
-	// Order providers: requested first, then others
+	// Order providers: requested first, then others (if not explicitly requested)
 	const availableProviders = providers.map(p => p.name);
-	const providerOrder = [
-		targetProvider,
-		...availableProviders.filter(p => p !== targetProvider),
-	];
+	const providerOrder = requestedProvider
+		? [targetProvider]
+		: [
+				targetProvider,
+				...availableProviders.filter(p => p !== targetProvider),
+			];
 
 	const errors: string[] = [];
 
