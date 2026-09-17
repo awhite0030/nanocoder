@@ -69,6 +69,30 @@ test.serial('fails when the bundle does not exist', async t => {
 	});
 });
 
+test.serial('succeeds when projectRoot differs from process.cwd()', async t => {
+	await withTempProject(async projectRoot => {
+		await makeBundle(projectRoot, 'cwd-test', {
+			'skill.yaml': 'name: cwd-test\ndescription: Test CWD.\n',
+			'commands/test.md': `---
+description: Do something.
+---
+Do something.
+`,
+		});
+
+		const originalCwd = process.cwd;
+		try {
+			// Mock process.cwd() to return a completely different directory
+			process.cwd = () => '/tmp/some/other/dir/that/is/not/project/root';
+			const report = await checkSkillBundle(projectRoot, 'cwd-test');
+			t.true(report.ok);
+			t.true(report.found);
+		} finally {
+			process.cwd = originalCwd;
+		}
+	});
+});
+
 test.serial('flags a kebab-case tool name as an error', async t => {
 	await withTempProject(async projectRoot => {
 		await makeBundle(projectRoot, 'bad', {
