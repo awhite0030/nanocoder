@@ -171,7 +171,7 @@
 			"json-summary",
 			"lcov"
 		],
-		"lines": 0,
+		"lines": 80,
 		"functions": 0,
 		"branches": 0,
 		"statements": 0
