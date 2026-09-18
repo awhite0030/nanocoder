@@ -2,6 +2,7 @@ import {Box, Text} from 'ink';
 import React from 'react';
 import ToolMessage from '@/components/tool-message';
 import {ThemeContext} from '@/hooks/useTheme';
+import {getProjectRoot} from '@/services/session-cwd';
 import {checkSkillBundle, formatSkillCheckReport} from '@/skills/check';
 import type {NanocoderToolExport} from '@/types/core';
 import {jsonSchema, tool} from '@/types/core';
@@ -17,7 +18,7 @@ const executeCheckSkill = async (args: CheckSkillArgs): Promise<string> => {
 		throw new Error('check_skill requires a "name" (the skill bundle name).');
 	}
 	try {
-		const report = await checkSkillBundle(process.cwd(), name);
+		const report = await checkSkillBundle(getProjectRoot(), name);
 		return formatSkillCheckReport(report);
 	} catch (error: unknown) {
 		throw new Error(`Failed to check skill: ${formatError(error)}`);
