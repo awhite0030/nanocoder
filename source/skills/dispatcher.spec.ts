@@ -2,6 +2,7 @@ import test from 'ava';
 import type {Event, Subscription} from '@/events/types';
 import type {SubagentResult, SubagentTask} from '@/subagents/types';
 import type {DevelopmentMode} from '@/types/core';
+import type {SkillMemberKind} from '@/types/skills';
 import {
 	buildTriggeredTask,
 	modeForSubscription,
@@ -10,7 +11,7 @@ import {
 
 console.log(`\ndispatcher.spec.ts`);
 
-function fileChangedSub(target: {kind: 'agent' | 'command' | 'tool'; name: string}): Subscription {
+function fileChangedSub(target: {kind: SkillMemberKind; name: string}): Subscription {
 	return {
 		id: 'sub-1',
 		kind: 'file.changed',
@@ -142,6 +143,30 @@ test('dispatch: tool target is reported as unsupported', async t => {
 	);
 	t.is(unsupported.length, 1);
 	t.regex(unsupported[0] ?? '', /tool targets/);
+});
+
+test('dispatch: skill target is reported as unsupported', async t => {
+	const unsupported: string[] = [];
+	const dispatcher = new SkillDispatcher({
+		buildExecutor: () => ({
+			async execute() {
+				return {
+					subagentName: 'no',
+					output: '',
+					success: false,
+					executionTimeMs: 0,
+				};
+			},
+		}),
+		onUnsupportedTarget: (_sub, reason) => unsupported.push(reason),
+	});
+
+	await dispatcher.dispatch(
+		fileChangedSub({kind: 'skill', name: 'another-skill'}),
+		fileEvent(),
+	);
+	t.is(unsupported.length, 1);
+	t.regex(unsupported[0] ?? '', /skill targets/);
 });
 
 test('modeForSubscription: confirm=true → plan, otherwise headless', t => {

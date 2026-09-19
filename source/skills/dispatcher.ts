@@ -108,6 +108,13 @@ export class SkillDispatcher implements SubscriptionDispatcher {
 			);
 			return;
 		}
+		if (target.kind === 'skill') {
+			this.options.onUnsupportedTarget?.(
+				subscription,
+				'skill targets are not yet supported - see issue #1011',
+			);
+			return;
+		}
 	}
 
 	private async dispatchAgent(
