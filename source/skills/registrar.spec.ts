@@ -277,3 +277,43 @@ test('subscriptions are registered with the event router', async t => {
 	t.is(deps.dispatchCalls.length, 1);
 	t.is(deps.dispatchCalls[0]?.sub.id, r.subscriptionIds[0]);
 });
+
+test('subscription to a skill target is registered and dispatched', async t => {
+	const deps = makeDeps();
+	const skill: Skill = {
+		name: 'docs',
+		description: 'docs',
+		toolsVisibility: 'global',
+		source: {
+			priority: 'project',
+			shape: 'single-file',
+			rootPath: '/p/.nanocoder/agents/docs-agent.md',
+		},
+		subagent: {
+			subagent: {
+				name: 'docs-agent',
+				description: 'docs',
+				systemPrompt: 'sp',
+			},
+			filePath: '/p/.nanocoder/agents/docs-agent.md',
+		},
+		subscribe: [
+			{
+				kind: 'file.changed',
+				target: 'skill:other-skill',
+				paths: ['docs/**'],
+			},
+		],
+	};
+	const r = registerSkills([skill], deps);
+	t.deepEqual(r.collisions, []);
+	t.is(r.subscriptionIds.length, 1);
+
+	await deps.eventRouter.emit({
+		kind: 'file.changed',
+		payload: {file: 'docs/intro.md', eventKind: 'change'},
+		at: Date.now(),
+	});
+	t.is(deps.dispatchCalls.length, 1);
+	t.is(deps.dispatchCalls[0]?.sub.id, r.subscriptionIds[0]);
+});
