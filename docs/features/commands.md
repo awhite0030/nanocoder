@@ -13,6 +13,7 @@ Type `/` in the chat input to see available commands. All commands start with `/
 | Command | Description |
 |---------|-------------|
 | `/help` | Show available commands |
+| `/whoami` | Show active provider configuration, API keys, and base URLs (alias: `/auth`) |
 | `/init` | Initialize project with intelligent analysis, create AGENTS.md and configuration files. Use `/init --force` to regenerate AGENTS.md if it already exists, or `/init --lean` to skip merging `CLAUDE.md` content into the generated AGENTS.md |
 | `/setup-config` | Open a configuration file in your `$EDITOR` (lists project and global config files) |
 | `/clear` | Clear chat history |
