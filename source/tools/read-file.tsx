@@ -306,6 +306,11 @@ const readFileFormatter = async (
 		return <></>;
 	}
 
+	// Detect if this was a metadata-only response
+	const isMetadataOnly =
+		(args.metadata_only ?? false) &&
+		(result?.startsWith('File Information for') ?? false);
+
 	// Load file info to calculate actual read information
 	let fileInfo = {
 		totalLines: 0,
@@ -313,7 +318,7 @@ const readFileFormatter = async (
 		readEndLine: 0,
 		tokens: 0,
 		isPartialRead: false,
-		isMetadataOnly: false,
+		isMetadataOnly,
 		isTruncated: false,
 	};
 
@@ -326,13 +331,6 @@ const readFileFormatter = async (
 			const lines = cached.lines;
 			const totalLines = lines.length;
 
-			// Detect if this was a metadata-only response
-			const isMetadataOnly =
-				(result?.startsWith('File Information for') ?? false) &&
-				!args.start_line &&
-				!args.end_line &&
-				((args.metadata_only ?? false) ||
-					totalLines > FILE_READ_PREVIEW_THRESHOLD_LINES);
 			const isTruncated = result?.includes('[Truncated at line ') ?? false;
 
 			// Calculate what was actually read

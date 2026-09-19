@@ -1150,3 +1150,69 @@ test('ReadFileFormatter correctly identifies metadata_only results', async t => 
 		rmSync(testDir, { recursive: true, force: true });
 	}
 });
+
+test('ReadFileFormatter correctly identifies a directory with metadata_only: true', async t => {
+	const testDir = join(process.cwd(), 'test-metadata-dir-formatter-temp');
+	try {
+		mkdirSync(testDir, { recursive: true });
+		// Create a directory, not a file
+		mkdirSync(join(testDir, 'somedir'), { recursive: true });
+
+		const formatter = readFileTool.formatter;
+		if (!formatter) {
+			t.fail('Formatter is not defined');
+			return;
+		}
+
+		// When reading a directory with metadata_only, getCachedFileContent throws EISDIR.
+		// We want to ensure it still gets formatted as metadata only.
+		const element = await formatter(
+			{ path: join(testDir, 'somedir'), metadata_only: true },
+			`File Information for "${join(testDir, 'somedir')}"\n==================================================\n\nType: directory\nSize: 64 bytes\nLast Modified: 2023-01-01T00:00:00.000Z\n`
+		);
+		const { lastFrame } = render(
+			<TestThemeProvider>{element}</TestThemeProvider>
+		);
+
+		const output = lastFrame();
+		t.truthy(output);
+		t.regex(stripAnsi(output!), /metadata only/);
+		t.regex(stripAnsi(output!), /Total lines:\s*0/); // Because content read failed, it falls back to 0
+	} finally {
+		rmSync(testDir, { recursive: true, force: true });
+	}
+});
+
+test('ReadFileFormatter correctly formats a plain large file read without metadata_only', async t => {
+	const testDir = join(process.cwd(), 'test-large-file-formatter-temp');
+	try {
+		mkdirSync(testDir, { recursive: true });
+		const content = Array.from({ length: 2000 }, (_, index) => `line-${index + 1}`).join('\n');
+		// Write a file that happens to start with "File Information for" to try to trick it
+		writeFileSync(join(testDir, 'large.ts'), `File Information for "large.ts"\n${content}`);
+
+		const formatter = readFileTool.formatter;
+		if (!formatter) {
+			t.fail('Formatter is not defined');
+			return;
+		}
+
+		// Read without metadata_only flag
+		const element = await formatter(
+			{ path: join(testDir, 'large.ts') },
+			`File Information for "large.ts"\nline-1\n[Truncated at line 250 of 2001. Use read_file with start_line: 251 and end_line to continue.]`
+		);
+		const { lastFrame } = render(
+			<TestThemeProvider>{element}</TestThemeProvider>
+		);
+
+		const output = lastFrame();
+		t.truthy(output);
+		// Should NOT be flagged as metadata only
+		t.notRegex(stripAnsi(output!), /metadata only/);
+		// Should show correct truncation preview
+		t.regex(stripAnsi(output!), /Lines:\s+1 - 250 of 2001/);
+	} finally {
+		rmSync(testDir, { recursive: true, force: true });
+	}
+});
