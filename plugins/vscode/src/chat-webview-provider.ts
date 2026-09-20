@@ -243,6 +243,7 @@ export class ChatWebviewProvider
 				: response
 					? 'completed'
 					: 'failed');
+		const showTokenUsage = vscode.workspace.getConfiguration('nanocoder').get<boolean>('showTokenUsage', false);
 		this.postMessage({
 			type: 'acpUpdate',
 			update: {
@@ -250,6 +251,7 @@ export class ChatWebviewProvider
 				outcome,
 				usage: response?.usage,
 				cost: (response?._meta as Record<string, any> | undefined)?.['nanocoder/usage']?.cost,
+				showTokenUsage,
 			},
 		});
 	}
@@ -735,7 +737,8 @@ export class ChatWebviewProvider
 				// The webview has already drawn the user bubble and flipped to
 				// the loading state, and no turn is going to start - so end the
 				// turn here or the composer spins until the user hits Escape.
-				this.postMessage({type: 'acpUpdate', update: {sessionUpdate: 'prompt_response'}});
+				const showTokenUsage = vscode.workspace.getConfiguration('nanocoder').get<boolean>('showTokenUsage', false);
+				this.postMessage({type: 'acpUpdate', update: {sessionUpdate: 'prompt_response', showTokenUsage}});
 				return;
 			}
 
@@ -761,7 +764,8 @@ export class ChatWebviewProvider
 			const sessionId = await this._acpClient.getOrCreateSession(cwd);
 			if (!sessionId) {
 				vscode.window.showErrorMessage('Nanocoder: Failed to create ACP session.');
-				this.postMessage({type: 'acpUpdate', update: {sessionUpdate: 'prompt_response', outcome: 'failed'}});
+				const showTokenUsage = vscode.workspace.getConfiguration('nanocoder').get<boolean>('showTokenUsage', false);
+				this.postMessage({type: 'acpUpdate', update: {sessionUpdate: 'prompt_response', outcome: 'failed', showTokenUsage}});
 				return;
 			}
 			

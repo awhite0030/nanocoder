@@ -164,6 +164,11 @@
 					"default": false,
 					"description": "Automatically start Nanocoder CLI if not running"
 				},
+				"nanocoder.showTokenUsage": {
+					"type": "boolean",
+					"default": false,
+					"description": "Show token usage and estimated cost in the chat panel"
+				},
 				"nanocoder.showDiffPreview": {
 					"type": "boolean",
 					"default": true,
@@ -215,7 +220,7 @@
 		"@types/vscode": "^1.125.0",
 		"@types/ws": "^8.5.10",
 		"@vscode/vsce": "^3.9.1",
-		"concurrently": "^10.0.5",
+		"concurrently": "^8.2.2",
 		"esbuild": "^0.28.1",
 		"eslint": "^10.1.0",
 		"tailwindcss": "^4.3.3",
