@@ -5,6 +5,7 @@
 
 import type {Tokenizer, TokenizerProvider} from '../types/tokenization.js';
 import {AnthropicTokenizer} from './tokenizers/anthropic-tokenizer.js';
+import {GeminiTokenizer} from './tokenizers/gemini-tokenizer.js';
 import {GenericTokenizer} from './tokenizers/generic-tokenizer.js';
 import {LlamaTokenizer} from './tokenizers/llama-tokenizer.js';
 import {OpenAITokenizer} from './tokenizers/openai-tokenizer.js';
@@ -20,6 +21,10 @@ function detectProvider(
 	const lowerModel = modelId.toLowerCase();
 
 	// Check provider name
+	if (lowerProvider.includes('gemini') || lowerProvider.includes('google')) {
+		return 'gemini' as TokenizerProvider;
+	}
+
 	if (lowerProvider.includes('openai')) {
 		return 'openai';
 	}
@@ -29,6 +34,10 @@ function detectProvider(
 	}
 
 	// Check model ID for common patterns
+	if (lowerModel.includes('gemini')) {
+		return 'gemini' as TokenizerProvider;
+	}
+
 	if (lowerModel.includes('gpt') || lowerModel.includes('openai')) {
 		return 'openai';
 	}
@@ -78,6 +87,9 @@ export function createTokenizer(
 	const provider = detectProvider(providerName, normalizedModelId);
 
 	switch (provider) {
+		case 'gemini' as string:
+			return new GeminiTokenizer();
+
 		case 'openai':
 			return new OpenAITokenizer(normalizedModelId);
 
